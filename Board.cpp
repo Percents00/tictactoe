@@ -5,7 +5,6 @@
 
 Board::Board(int boardSize) : size(boardSize), grid(boardSize * boardSize, CellState::Empty) {}
 
-
 bool Board::isFull() const {
     return std::all_of(grid.begin(), grid.end(), [](CellState cell){ return cell != CellState::Empty; });
 }
@@ -35,22 +34,16 @@ int Board::getSize() const {
     return size;
 }
 
-
 GameState Board::checkGameState() const {
-    for (int i = 0; i < size; ++i) {
-        CellState first = getCell(i, 0);
-        if (first != CellState::Empty &&
-            std::all_of(grid.begin() + i * size, grid.begin() + (i + 1) * size, [&](CellState s){ return s == first; })) {
-            return (first == CellState::Cross) ? GameState::CrossWin : GameState::NoughtWin;
-        }
-    }
+    int k = size;
 
-    for (int j = 0; j < size; ++j) {
-        CellState first = getCell(0, j);
-         if (first != CellState::Empty) {
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j <= size - k; ++j) {
+            CellState first = getCell(i, j);
+            if (first != CellState::Empty) {
                 bool win = true;
-                for (int i = 1; i < size; ++i) {
-                    if (getCell(i, j) != first) {
+                for (int l = 1; l < k; ++l) {
+                    if (getCell(i, j + l) != first) {
                         win = false;
                         break;
                     }
@@ -59,33 +52,62 @@ GameState Board::checkGameState() const {
                     return (first == CellState::Cross) ? GameState::CrossWin : GameState::NoughtWin;
                 }
             }
+        }
     }
 
-    CellState center = getCell(size / 2, size/ 2);
-     if (center != CellState::Empty) {
-            bool mainDiagWin = true;
-            for (int i = 0; i < size; ++i) {
-                if (getCell(i, i) != center) {
-                    mainDiagWin = false;
-                    break;
+    for (int j = 0; j < size; ++j) {
+        for (int i = 0; i <= size - k; ++i) {
+            CellState first = getCell(i, j);
+            if (first != CellState::Empty) {
+                bool win = true;
+                for (int l = 1; l < k; ++l) {
+                    if (getCell(i + l, j) != first) {
+                        win = false;
+                        break;
+                    }
+                }
+                if (win) {
+                    return (first == CellState::Cross) ? GameState::CrossWin : GameState::NoughtWin;
                 }
             }
-             if (mainDiagWin) { return (center == CellState::Cross) ? GameState::CrossWin : GameState::NoughtWin; }
-
-            bool antiDiagWin = true;
-            for (int i = 0; i < size; ++i) {
-                if (getCell(i, size - 1 - i) != center) {
-                    antiDiagWin = false;
-                    break;
-                }
-            }
-
-            if (antiDiagWin) { return (center == CellState::Cross) ? GameState::CrossWin : GameState::NoughtWin; }
-
         }
+    }
 
+    for (int i = 0; i <= size - k; ++i) {
+        for (int j = 0; j <= size - k; ++j) {
+            CellState first = getCell(i, j);
+            if (first != CellState::Empty) {
+                bool win = true;
+                for (int l = 1; l < k; ++l) {
+                    if (getCell(i + l, j + l) != first) {
+                        win = false;
+                        break;
+                    }
+                }
+                if (win) {
+                    return (first == CellState::Cross) ? GameState::CrossWin : GameState::NoughtWin;
+                }
+            }
+        }
+    }
 
-
+    for (int i = 0; i <= size - k; ++i) {
+        for (int j = k - 1; j < size; ++j) {
+            CellState first = getCell(i, j);
+            if (first != CellState::Empty) {
+                bool win = true;
+                for (int l = 1; l < k; ++l) {
+                    if (getCell(i + l, j - l) != first) {
+                        win = false;
+                        break;
+                    }
+                }
+                if (win) {
+                    return (first == CellState::Cross) ? GameState::CrossWin : GameState::NoughtWin;
+                }
+            }
+        }
+    }
 
     if (isFull()) {
         return GameState::Draw;

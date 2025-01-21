@@ -6,6 +6,8 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QStackedWidget>
+#include <QLineEdit>
+#include <QMessageBox>
 #include "Game.h"
 
 class TictactoeUI : public QWidget {
@@ -21,9 +23,9 @@ private:
     QVBoxLayout* mainLayout;
     QLabel* statusLabel;
     QLabel* titleLabel;
-    QPushButton* newGameButton;
     QPushButton* crossFirstButton;
     QPushButton* noughtFirstButton;
+    QLineEdit* sizeInput;
 
     void createMainMenu();
     void createGameUI();
@@ -33,11 +35,9 @@ private:
 
     private slots:
         void handleButtonClick(int index);
-    void onNewGameClicked();
     void startGame(CellState firstPlayer);
     void setCrossFirst();
     void setNoughtFirst();
-
 
 public:
     explicit TictactoeUI(QWidget* parent = nullptr);

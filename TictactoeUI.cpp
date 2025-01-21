@@ -2,6 +2,9 @@
 #include "TictactoeUI.h"
 #include <QMessageBox>
 #include <QFont>
+#include <QIntValidator>
+#include <QApplication>
+#include <QScreen>
 
 TictactoeUI::TictactoeUI(QWidget *parent)
         : QWidget(parent), game(3),
@@ -10,9 +13,9 @@ TictactoeUI::TictactoeUI(QWidget *parent)
           gameWidget(new QWidget),
           gridLayout(new QGridLayout),
           titleLabel(new QLabel("Крестики-нолики")),
-          newGameButton(new QPushButton("Новая игра")),
           statusLabel(new QLabel), crossFirstButton(new QPushButton("Крестики первыми")),
-          noughtFirstButton(new QPushButton("Нолики первыми"))
+          noughtFirstButton(new QPushButton("Нолики первыми")),
+          sizeInput(new QLineEdit)
 {
     setWindowTitle("TicTacToe");
 
@@ -29,67 +32,39 @@ TictactoeUI::TictactoeUI(QWidget *parent)
 }
 
 
-void TictactoeUI::createGameUI()
-{
-    titleLabel->setAlignment(Qt::AlignCenter);
-    titleLabel->setFont(QFont("Arial", 24, QFont::Bold));
-    titleLabel->setStyleSheet("color: #555;");
-
-    newGameButton->setFont(QFont("Arial", 16));
-    newGameButton->setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; border-radius: 7px;");
-
-    statusLabel->setAlignment(Qt::AlignCenter);
-    statusLabel->setFont(QFont("Arial", 18));
-
-
-
-    gridLayout->setHorizontalSpacing(10);
-    gridLayout->setVerticalSpacing(10);
-
-
-
-    QVBoxLayout* gameLayout = new QVBoxLayout(gameWidget);
-    gameLayout->addWidget(statusLabel);
-    gameLayout->addWidget(titleLabel);
-    gameLayout->addLayout(gridLayout);
-    gameLayout->addWidget(newGameButton);
-
-    connect(newGameButton, &QPushButton::clicked, this, &TictactoeUI::onNewGameClicked);
-}
-
 void TictactoeUI::createMainMenu() {
     QVBoxLayout* menuLayout = new QVBoxLayout(mainMenuWidget);
 
+    sizeInput->setPlaceholderText("Введите размер поля (например, 3)");
+    sizeInput->setValidator(new QIntValidator(3, 10, this));
 
+    // Переименовываем кнопки
+    crossFirstButton->setText("Играть первым ходом");
+    noughtFirstButton->setText("Играть вторым ходом");
+
+    crossFirstButton->setFont(QFont("Arial", 16));
+    crossFirstButton->setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; border-radius: 7px;");
+
+    noughtFirstButton->setFont(QFont("Arial", 16));
+    noughtFirstButton->setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; border-radius: 7px;");
+
+    menuLayout->addStretch();
+    menuLayout->addWidget(new QLabel("Выберите размер поля:"));
+    menuLayout->addWidget(sizeInput);
+    menuLayout->addWidget(crossFirstButton);
+    menuLayout->addWidget(noughtFirstButton);
+    menuLayout->addStretch();
 
     connect(crossFirstButton, &QPushButton::clicked, this, &TictactoeUI::setCrossFirst);
     connect(noughtFirstButton, &QPushButton::clicked, this, &TictactoeUI::setNoughtFirst);
 
-
-
-
-    menuLayout->addStretch();
-    menuLayout->addWidget(crossFirstButton);
-    menuLayout->addWidget(noughtFirstButton);
-    menuLayout->addStretch();
     mainMenuWidget->setLayout(menuLayout);
-
-
-    mainMenuWidget->setLayout(menuLayout);
-
-
 }
 
-void TictactoeUI::setCrossFirst() {
-    startGame(CellState::Cross);
-}
-
-void TictactoeUI::setNoughtFirst() {
-    startGame(CellState::Nought);
-}
 
 void TictactoeUI::startGame(CellState firstPlayer) {
-    game = Game(3);
+    int size = sizeInput->text().toInt();
+    game = Game(size);
     game.setCurrentPlayer(firstPlayer);
     resetGame();
     stackedWidget->setCurrentWidget(gameWidget);
@@ -102,54 +77,50 @@ void TictactoeUI::startGame(CellState firstPlayer) {
 }
 
 void TictactoeUI::resetGame() {
-
     while (QLayoutItem* item = gridLayout->takeAt(0)) {
-        if(item->widget() != nullptr)
-        {
+        if(item->widget() != nullptr) {
             delete item->widget();
         }
-
         delete item;
     }
     buttons.clear();
 
+    int size = game.getBoard().getSize();
 
+    int buttonSize = (size <= 5) ? 120 : (size <= 7) ? 80 : 60;
 
-
-    for (int i = 0; i < 9; ++i) {
+    for (int i = 0; i < size * size; ++i) {
         QPushButton* button = new QPushButton(".");
-        button->setFixedSize(120, 120);
-        button->setFont(QFont("Arial", 36, QFont::Bold));
+        button->setFixedSize(buttonSize, buttonSize);
+        button->setFont(QFont("Arial", 24, QFont::Bold));
         button->setStyleSheet("background-color: #F0F0F0; border: 2px solid #CCC; border-radius: 10px;");
         buttons.push_back(button);
-        gridLayout->addWidget(button, i / 3, i % 3);
-        int row = i / 3;
-        int col = i % 3;
+        gridLayout->addWidget(button, i / size, i % size);
 
-        connect(button, &QPushButton::clicked, this, [this, row, col](){
-            this->handleButtonClick(row * game.getBoard().getSize() + col);
+        connect(button, &QPushButton::clicked, this, [this, i, size](){
+            this->handleButtonClick(i);
         });
-
-
     }
-    setFixedSize(400, 540);
+
+    int windowWidth = buttonSize * size + 50;
+    int windowHeight = buttonSize * size + 150;
+
+    setMinimumSize(windowWidth, windowHeight);
+    setMaximumSize(windowWidth * 2, windowHeight * 2);
+
+    adjustSize();
+    move(QApplication::primaryScreen()->geometry().center() - rect().center());
+
     updateBoard();
-
     statusLabel->setText("");
-
 }
 
-
-
 void TictactoeUI::handleButtonClick(int index) {
-
-
-
     try {
         if (game.getGameState() == GameState::InProgress) {
-            if(game.getBoard().isCellEmpty(index / game.getBoard().getSize(), index % game.getBoard().getSize()))
-            {
-                game.makeMove(index / game.getBoard().getSize(), index % game.getBoard().getSize(), game.getCurrentPlayer());
+            int size = game.getBoard().getSize();
+            if(game.getBoard().isCellEmpty(index / size, index % size)) {
+                game.makeMove(index / size, index % size, game.getCurrentPlayer());
 
                 if (game.getCurrentPlayer() == CellState::Cross)
                     game.setCurrentPlayer(CellState::Nought);
@@ -158,8 +129,6 @@ void TictactoeUI::handleButtonClick(int index) {
 
                 updateBoard();
             }
-
-
 
             if (game.getGameState() != GameState::InProgress) {
                 showGameOverMessage();
@@ -176,7 +145,6 @@ void TictactoeUI::handleButtonClick(int index) {
                 }
             }
         }
-
     } catch (const std::exception& e) {
         QMessageBox::critical(this, "Error", e.what());
         return;
@@ -187,18 +155,15 @@ void TictactoeUI::handleButtonClick(int index) {
     }
 }
 
-
-
-
 void TictactoeUI::updateBoard() {
+    int size = game.getBoard().getSize();
     for (int i = 0; i < buttons.size(); ++i) {
-        CellState cell = game.getBoard().getCell(i / game.getBoard().getSize(), i % game.getBoard().getSize());
+        CellState cell = game.getBoard().getCell(i / size, i % size);
         QString text = "";
         if (cell == CellState::Cross) { text = "X"; }
         if (cell == CellState::Nought) { text = "O"; }
 
         buttons[i]->setText(text);
-
 
         if (cell == CellState::Cross) {
             buttons[i]->setStyleSheet("background-color: #FFEBEE; border: 2px solid #E91E63; border-radius: 10px; color: #E91E63;");
@@ -209,16 +174,8 @@ void TictactoeUI::updateBoard() {
         }
 
         buttons[i]->setEnabled(cell == CellState::Empty);
-
     }
-
 }
-
-
-void TictactoeUI::onNewGameClicked() {
-    resetGame();
-}
-
 
 void TictactoeUI::showGameOverMessage() {
     QString resultMessage;
@@ -238,23 +195,77 @@ void TictactoeUI::showGameOverMessage() {
             resultMessage = "Ничья!";
         break;
         default:
-            resultMessage = "Unknown game state";
+            resultMessage = "Неизвестное состояние игры";
     }
-
 
     QMessageBox msgBox(this);
     msgBox.setText(resultMessage);
-    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-    msgBox.setDefaultButton(QMessageBox::Yes);
-    msgBox.setButtonText(QMessageBox::Yes, "Играть за крестики");
-    msgBox.setButtonText(QMessageBox::No, "Играть за нолики");
-    int ret = msgBox.exec();
 
+    QPushButton* playCrossButton = msgBox.addButton("Играть за крестики", QMessageBox::YesRole);
+    QPushButton* playNoughtButton = msgBox.addButton("Играть за нолики", QMessageBox::NoRole);
+    QPushButton* returnToMenuButton = msgBox.addButton("В главное меню", QMessageBox::ActionRole);
+    msgBox.setDefaultButton(playCrossButton);
 
+    msgBox.exec();
 
-    if (ret == QMessageBox::Yes) {
+    QPushButton* clickedButton = qobject_cast<QPushButton*>(msgBox.clickedButton());
+
+    if (clickedButton == playCrossButton) {
         startGame(CellState::Cross);
-    } else if (ret == QMessageBox::No) {
+    } else if (clickedButton == playNoughtButton) {
         startGame(CellState::Nought);
+    } else if (clickedButton == returnToMenuButton) {
+        stackedWidget->setCurrentWidget(mainMenuWidget);
+    } else {
+        return;
     }
+
+    msgBox.close();
+}
+
+void TictactoeUI::setCrossFirst() {
+    QString sizeText = sizeInput->text().trimmed();
+    if (sizeText.isEmpty()) {
+        QMessageBox::warning(this, "Ошибка", "Поле размера не может быть пустым.");
+        return;
+    }
+
+    int size = sizeText.toInt();
+    if (size >= 3 && size <= 10) {
+        startGame(CellState::Cross);
+    } else {
+        QMessageBox::warning(this, "Ошибка", "Размер поля должен быть от 3 до 10.");
+    }
+}
+
+void TictactoeUI::setNoughtFirst() {
+    QString sizeText = sizeInput->text().trimmed();
+    if (sizeText.isEmpty()) {
+        QMessageBox::warning(this, "Ошибка", "Поле размера не может быть пустым.");
+        return;
+    }
+
+    int size = sizeText.toInt();
+    if (size >= 3 && size <= 10) {
+        startGame(CellState::Nought);
+    } else {
+        QMessageBox::warning(this, "Ошибка", "Размер поля должен быть от 3 до 10.");
+    }
+}
+
+void TictactoeUI::createGameUI() {
+    titleLabel->setAlignment(Qt::AlignCenter);
+    titleLabel->setFont(QFont("Arial", 24, QFont::Bold));
+    titleLabel->setStyleSheet("color: #555;");
+
+    statusLabel->setAlignment(Qt::AlignCenter);
+    statusLabel->setFont(QFont("Arial", 18));
+
+    gridLayout->setHorizontalSpacing(10);
+    gridLayout->setVerticalSpacing(10);
+
+    QVBoxLayout* gameLayout = new QVBoxLayout(gameWidget);
+    gameLayout->addWidget(statusLabel);
+    gameLayout->addWidget(titleLabel);
+    gameLayout->addLayout(gridLayout);
 }

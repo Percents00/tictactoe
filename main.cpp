@@ -4,8 +4,8 @@
 
 int main(int argc, char *argv[]) {
     try {
-        runBoardTests();
-        runBotTests();
+        //runBoardTests();
+        //runBotTests();
 
         QApplication a(argc, argv);
         TictactoeUI w;

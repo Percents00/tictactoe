@@ -9,13 +9,15 @@ class Game;
 
 class Bot {
 private:
+    int maxDepth;
     CellState aiPlayer;
     CellState humanPlayer;
     Game* game;
     std::unordered_map<std::string, int> memo;
 
 
-    int minimax(Board& board, int depth, bool isMaximizing);
+    int minimax(Board& board, int depth, int alpha, int beta, bool isMaximizing);
+    int evaluateCell(const Board& board, int x, int y) const;
 
     [[nodiscard]] int evaluate(const Board& board) const;
 
@@ -25,7 +27,7 @@ private:
 
 
 public:
-    Bot(CellState ai, CellState human, Game* game);
+    Bot(CellState ai, CellState human, Game* game, int maxDepth = 3);
 
     std::pair<int, int> getBestMove(Board& board);
 };
