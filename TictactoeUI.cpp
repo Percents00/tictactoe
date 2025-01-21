@@ -4,45 +4,116 @@
 #include <QFont>
 
 TictactoeUI::TictactoeUI(QWidget *parent)
-        : QWidget(parent), game(3), gridLayout(new QGridLayout),
-          mainLayout(new QVBoxLayout(this)), titleLabel(new QLabel("Крестики-нолики")),
-          newGameButton(new QPushButton("Новая игра")), statusLabel(new QLabel) {
-
+        : QWidget(parent), game(3),
+          stackedWidget(new QStackedWidget(this)),
+          mainMenuWidget(new QWidget),
+          gameWidget(new QWidget),
+          gridLayout(new QGridLayout),
+          titleLabel(new QLabel("Крестики-нолики")),
+          newGameButton(new QPushButton("Новая игра")),
+          statusLabel(new QLabel), crossFirstButton(new QPushButton("Крестики первыми")),
+          noughtFirstButton(new QPushButton("Нолики первыми"))
+{
     setWindowTitle("TicTacToe");
-    setFixedSize(340, 440);
 
-    createUI();
-    resetGame();
+    createMainMenu();
+    createGameUI();
+
+    stackedWidget->addWidget(mainMenuWidget);
+    stackedWidget->addWidget(gameWidget);
+    stackedWidget->setCurrentWidget(mainMenuWidget);
+
+    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    mainLayout->addWidget(stackedWidget);
+    setLayout(mainLayout);
 }
 
 
-void TictactoeUI::createUI() {
+void TictactoeUI::createGameUI()
+{
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setFont(QFont("Arial", 24, QFont::Bold));
     titleLabel->setStyleSheet("color: #555;");
+
     newGameButton->setFont(QFont("Arial", 16));
     newGameButton->setStyleSheet("background-color: #4CAF50; color: white; padding: 10px; border-radius: 7px;");
+
     statusLabel->setAlignment(Qt::AlignCenter);
     statusLabel->setFont(QFont("Arial", 18));
-    mainLayout->addWidget(statusLabel);
+
+
+
     gridLayout->setHorizontalSpacing(10);
     gridLayout->setVerticalSpacing(10);
-    mainLayout->addWidget(titleLabel);
-    mainLayout->addLayout(gridLayout);
-    mainLayout->addWidget(newGameButton);
+
+
+
+    QVBoxLayout* gameLayout = new QVBoxLayout(gameWidget);
+    gameLayout->addWidget(statusLabel);
+    gameLayout->addWidget(titleLabel);
+    gameLayout->addLayout(gridLayout);
+    gameLayout->addWidget(newGameButton);
 
     connect(newGameButton, &QPushButton::clicked, this, &TictactoeUI::onNewGameClicked);
+}
+
+void TictactoeUI::createMainMenu() {
+    QVBoxLayout* menuLayout = new QVBoxLayout(mainMenuWidget);
+
+
+
+    connect(crossFirstButton, &QPushButton::clicked, this, &TictactoeUI::setCrossFirst);
+    connect(noughtFirstButton, &QPushButton::clicked, this, &TictactoeUI::setNoughtFirst);
+
+
+
+
+    menuLayout->addStretch();
+    menuLayout->addWidget(crossFirstButton);
+    menuLayout->addWidget(noughtFirstButton);
+    menuLayout->addStretch();
+    mainMenuWidget->setLayout(menuLayout);
+
+
+    mainMenuWidget->setLayout(menuLayout);
+
+
+}
+
+void TictactoeUI::setCrossFirst() {
+    startGame(CellState::Cross);
+}
+
+void TictactoeUI::setNoughtFirst() {
+    startGame(CellState::Nought);
+}
+
+void TictactoeUI::startGame(CellState firstPlayer) {
+    game = Game(3);
+    game.setCurrentPlayer(firstPlayer);
+    resetGame();
+    stackedWidget->setCurrentWidget(gameWidget);
+
+    if (firstPlayer == CellState::Nought) {
+        game.botMove();
+        game.setCurrentPlayer(CellState::Cross);
+        updateBoard();
+    }
 }
 
 void TictactoeUI::resetGame() {
 
     while (QLayoutItem* item = gridLayout->takeAt(0)) {
-        delete item->widget();
+        if(item->widget() != nullptr)
+        {
+            delete item->widget();
+        }
+
         delete item;
     }
     buttons.clear();
 
-    game = Game(3);
+
 
 
     for (int i = 0; i < 9; ++i) {
@@ -52,8 +123,13 @@ void TictactoeUI::resetGame() {
         button->setStyleSheet("background-color: #F0F0F0; border: 2px solid #CCC; border-radius: 10px;");
         buttons.push_back(button);
         gridLayout->addWidget(button, i / 3, i % 3);
+        int row = i / 3;
+        int col = i % 3;
 
-        connect(button, &QPushButton::clicked, this, &TictactoeUI::handleButtonClick);
+        connect(button, &QPushButton::clicked, this, [this, row, col](){
+            this->handleButtonClick(row * game.getBoard().getSize() + col);
+        });
+
 
     }
     setFixedSize(400, 540);
@@ -65,28 +141,34 @@ void TictactoeUI::resetGame() {
 
 
 
-void TictactoeUI::handleButtonClick() {
-
-    QPushButton* clickedButton = qobject_cast<QPushButton*>(sender());
-    int index = std::distance(buttons.begin(), std::find(buttons.begin(), buttons.end(), clickedButton));
-
-    if (index == -1 || !game.getBoard().isCellEmpty(index / game.getBoard().getSize(), index % game.getBoard().getSize())) {
-        return;
-    }
+void TictactoeUI::handleButtonClick(int index) {
 
 
 
     try {
         if (game.getGameState() == GameState::InProgress) {
-            game.makeMove(index / game.getBoard().getSize(), index % game.getBoard().getSize(), CellState::Cross);
-            game.setCurrentPlayer(CellState::Nought);
-            updateBoard();
+            if(game.getBoard().isCellEmpty(index / game.getBoard().getSize(), index % game.getBoard().getSize()))
+            {
+                game.makeMove(index / game.getBoard().getSize(), index % game.getBoard().getSize(), game.getCurrentPlayer());
+
+                if (game.getCurrentPlayer() == CellState::Cross)
+                    game.setCurrentPlayer(CellState::Nought);
+                else
+                    game.setCurrentPlayer(CellState::Cross);
+
+                updateBoard();
+            }
+
+
 
             if (game.getGameState() != GameState::InProgress) {
                 showGameOverMessage();
             } else {
                 game.botMove();
-                game.setCurrentPlayer(CellState::Cross);
+                if (game.getCurrentPlayer() == CellState::Cross)
+                    game.setCurrentPlayer(CellState::Nought);
+                else
+                    game.setCurrentPlayer(CellState::Cross);
                 updateBoard();
 
                 if (game.getGameState() != GameState::InProgress) {
@@ -103,7 +185,6 @@ void TictactoeUI::handleButtonClick() {
     if (game.getGameState() != GameState::InProgress) {
         showGameOverMessage();
     }
-
 }
 
 
@@ -135,26 +216,45 @@ void TictactoeUI::updateBoard() {
 
 
 void TictactoeUI::onNewGameClicked() {
-   resetGame();
+    resetGame();
 }
 
 
 void TictactoeUI::showGameOverMessage() {
     QString resultMessage;
+    CellState winner = CellState::Empty;
+    GameState state = game.getGameState();
 
-    switch (game.getGameState()) {
+    switch (state) {
         case GameState::CrossWin:
-            resultMessage = "You win!";
+            resultMessage = "Крестики выиграли!";
+        winner = CellState::Cross;
         break;
         case GameState::NoughtWin:
-            resultMessage = "Bot wins!";
+            resultMessage = "Нолики выиграли!";
+        winner = CellState::Nought;
         break;
         case GameState::Draw:
-            resultMessage = "It's a draw!";
+            resultMessage = "Ничья!";
         break;
         default:
             resultMessage = "Unknown game state";
     }
 
-    statusLabel->setText(resultMessage);
+
+    QMessageBox msgBox(this);
+    msgBox.setText(resultMessage);
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::Yes);
+    msgBox.setButtonText(QMessageBox::Yes, "Играть за крестики");
+    msgBox.setButtonText(QMessageBox::No, "Играть за нолики");
+    int ret = msgBox.exec();
+
+
+
+    if (ret == QMessageBox::Yes) {
+        startGame(CellState::Cross);
+    } else if (ret == QMessageBox::No) {
+        startGame(CellState::Nought);
+    }
 }

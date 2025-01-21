@@ -1,10 +1,12 @@
 // Bot.cpp
 #include "Bot.h"
+#include "Game.h"
 #include <sstream>
 #include <limits>
 #include <algorithm>
+#include <string>
 
-Bot::Bot(CellState ai, CellState human) : aiPlayer(ai), humanPlayer(human) {}
+Bot::Bot(CellState ai, CellState human, Game* game) : aiPlayer(ai), humanPlayer(human), game(game) {}
 
 
 int Bot::evaluate(const Board& board) const {
@@ -105,18 +107,22 @@ std::pair<int, int> Bot::getBestMove(Board& board) {
         return forcedMoveHuman;
 
 
-    int bestScore = -1000;
+    int bestScore = (aiPlayer == this->game->getCurrentPlayer()) ? -1000 : 1000;
     std::pair<int, int> bestMove = {-1, -1};
     for (int i = 0; i < board.getSize(); ++i) {
         for (int j = 0; j < board.getSize(); ++j) {
             if (board.isCellEmpty(i, j)) {
                 board.setCell(i, j, aiPlayer);
-                int moveScore = minimax(board, 0, false);
+                int moveScore = minimax(board, 0, aiPlayer != this->game->getCurrentPlayer());
                 board.setCell(i, j, CellState::Empty);
-                if (moveScore > bestScore) {
+
+                if ((aiPlayer == this->game->getCurrentPlayer() && moveScore > bestScore) || (aiPlayer != this->game->getCurrentPlayer() && moveScore < bestScore))
+                {
                     bestScore = moveScore;
                     bestMove = {i, j};
                 }
+
+
             }
         }
     }

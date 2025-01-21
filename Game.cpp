@@ -1,8 +1,8 @@
-// Game.cpp
+
 #include "Game.h"
+#include <stdexcept>
 
-
-Game::Game(int boardSize) : board(boardSize), bot(CellState::Nought, CellState::Cross), currentPlayer(CellState::Cross) {}
+Game::Game(int boardSize) : board(boardSize), bot(CellState::Nought, CellState::Cross, this), currentPlayer(CellState::Cross) {}
 
 void Game::botMove() {
     std::pair<int, int> bestMove = bot.getBestMove(board);

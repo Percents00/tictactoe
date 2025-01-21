@@ -3,12 +3,15 @@
 
 #include "Board.h"
 #include <unordered_map>
+#include <string>
 
+class Game;
 
 class Bot {
 private:
     CellState aiPlayer;
     CellState humanPlayer;
+    Game* game;
     std::unordered_map<std::string, int> memo;
 
 
@@ -22,7 +25,7 @@ private:
 
 
 public:
-    Bot(CellState ai, CellState human);
+    Bot(CellState ai, CellState human, Game* game);
 
     std::pair<int, int> getBestMove(Board& board);
 };

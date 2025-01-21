@@ -10,7 +10,6 @@ private:
     Bot bot;
     CellState currentPlayer;
 
-
 public:
     Game(int boardSize);
 
