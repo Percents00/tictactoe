@@ -37,8 +37,6 @@ void TictactoeUI::createMainMenu() {
 
     sizeInput->setPlaceholderText("Введите размер поля (например, 3)");
     sizeInput->setValidator(new QIntValidator(3, 10, this));
-
-    // Переименовываем кнопки
     crossFirstButton->setText("Играть первым ходом");
     noughtFirstButton->setText("Играть вторым ходом");
 
