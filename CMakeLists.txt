@@ -15,4 +15,3 @@ add_executable(lab3 main.cpp Board.cpp Bot.cpp Game.cpp TictactoeUI.cpp
 
 target_link_libraries(lab3 PRIVATE Qt6::Core Qt6::Widgets)
 target_compile_options(lab3 PRIVATE -finput-charset=UTF-8 -fexec-charset=UTF-8)
-#tests/UnorderedMapTests.cpp tests/BoardTests.cpp tests/BotTests.cpp
